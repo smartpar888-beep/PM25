@@ -94,7 +94,19 @@
             try {
                 const col  = collection(db, "air_monitoring");
                 const snap = await getDocs(col);
-                const docs = snap.docs.map(d => d.data());
+
+                // กรองเฉพาะค่าล่าสุดของแต่ละ point_id
+                const latestMap = {};
+                snap.docs.forEach(d => {
+                    const data = d.data();
+                    const pid  = data.point_id;
+                    const ts   = data.timestamp?.toMillis?.() ?? 0;
+                    if (!latestMap[pid] || ts > latestMap[pid]._ts) {
+                        latestMap[pid] = { ...data, _ts: ts };
+                    }
+                });
+
+                const docs = Object.values(latestMap);
                 renderData(docs);
             } catch (err) {
                 console.error("Firestore error:", err);
